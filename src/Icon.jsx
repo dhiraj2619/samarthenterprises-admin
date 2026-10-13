@@ -1,0 +1,37 @@
+const icons = {
+  dashboard: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+  products: 'm12 3 9 5-9 5-9-5 9-5z M3 8v9l9 5 9-5V8 M12 13v9',
+  collections: 'M3 7h7l2 2h9v11H3z M3 7V4h7l2 3',
+  offers: 'M3 3h8l10 10-8 8L3 11V3z M7 7h.01',
+  distributors: 'M3 21V7l9-4 9 4v14 M8 21v-6h8v6 M7 8h2 M15 8h2 M7 11h2 M15 11h2',
+  arrow: 'M5 12h14 M14 7l5 5-5 5',
+  back: 'M19 12H5 M10 7l-5 5 5 5',
+  plus: 'M12 5v14 M5 12h14',
+  search: 'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
+  chevron: 'm8 10 4 4 4-4',
+  menu: 'M3 6h18 M3 12h18 M3 18h18',
+  close: 'm6 6 12 12 M6 18 18 6',
+  check: 'm5 12 4 4L19 6',
+  help: 'M9 8a3 3 0 0 1 6 0c0 2-3 2-3 5 M12 17h.01',
+  download: 'M12 3v12 m-5-5 5 5 5-5 M4 17v4h16v-4',
+  leaf: 'M20 3C9 2 2 8 5 16s16 4 15-13z M5 20 16 9',
+  sun: 'M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4 M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+  moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',
+  image: 'M4 5h11 M4 5v14h16v-6 M4 16l4.5-4.5 4 4 2.5-2.5 5 5 M9 9.5h.01 M19 3v6 M16 6h6',
+  edit: 'M4 20h4L19 9l-4-4L4 16v4z M13.5 6.5l4 4',
+  trash: 'M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13 M10 11v6 M14 11v6',
+  external: 'M14 4h6v6 M20 4l-9 9 M18 14v6H4V6h6',
+  rupee: 'M6 4h12 M6 9h12 M9 4c5.5 0 5.5 10 0 10H6l8 7',
+  cart: 'M3 4h2.5l2.4 11h10.6L21 7H6.4 M9 20h.01 M18 20h.01',
+  boxes: 'M3 11h8v9H3z M13 11h8v9h-8z M8 3h8v8H8z',
+  trend: 'M3 17l6-6 4 4 8-8 M15 7h6v6',
+  alert: 'M12 3 2 20h20L12 3z M12 10v4 M12 17h.01',
+  clock: 'M12 7v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
+  target: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M12 12h.01',
+  logout: 'M15 4h4v16h-4 M10 8l-4 4 4 4 M6 12h10',
+  star: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z',
+}
+
+export default function Icon({ name, size = 20 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[name] || icons.products} /></svg>
+}

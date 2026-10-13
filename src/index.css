@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700;900&display=swap');
+
+:root {
+  --font-body: 'Open Sans', system-ui, sans-serif;
+  --font-head: 'Roboto', system-ui, sans-serif;
+
+  --bg: #f4f6f3;
+  --surface: #ffffff;
+  --surface-2: #f9faf8;
+  --surface-3: #f0f3ef;
+  --border: #e2e7e0;
+  --border-soft: #edf0eb;
+  --text: #17241f;
+  --text-2: #3f4f47;
+  --muted: #66746c;
+  --faint: #929e97;
+  --brand: #24513f;
+  --brand-hover: #1a3e30;
+  --brand-ink: #24513f;
+  --brand-soft: #e6f0e7;
+  --on-brand: #ffffff;
+  --accent: #c49a4c;
+  --banner-1: #1f4a37;
+  --banner-2: #2c6249;
+  --success: #3f7d4f;
+  --success-soft: #e8f3e8;
+  --warning: #9a7428;
+  --warning-soft: #f8f0dc;
+  --danger: #b4412f;
+  --danger-soft: #fbe9e5;
+  --series-buy: #25804f;
+  --series-bulk: #4a6fd0;
+  --tone-0-bg: #eaf2e6; --tone-0-fg: #4f7346;
+  --tone-1-bg: #f5eedf; --tone-1-fg: #a07c34;
+  --tone-2-bg: #e9eef8; --tone-2-fg: #4f6a9c;
+  --tone-3-bg: #f6e8e2; --tone-3-fg: #a46a52;
+  --shadow-sm: 0 1px 2px rgb(20 40 30 / 5%);
+  --shadow-md: 0 8px 24px -8px rgb(20 40 30 / 14%);
+  --shadow-lg: 0 30px 80px -20px rgb(10 30 25 / 30%);
+  --scrim: rgb(14 30 24 / 45%);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0e1412;
+  --surface: #151d1a;
+  --surface-2: #19221f;
+  --surface-3: #1f2a26;
+  --border: #26322d;
+  --border-soft: #202a26;
+  --text: #e7eeea;
+  --text-2: #c3cec8;
+  --muted: #94a39b;
+  --faint: #6d7c74;
+  --brand: #2f7a57;
+  --brand-hover: #378a63;
+  --brand-ink: #86cba6;
+  --brand-soft: #1b3428;
+  --on-brand: #ffffff;
+  --accent: #d6b26b;
+  --banner-1: #163628;
+  --banner-2: #1f4b37;
+  --success: #86cba6;
+  --success-soft: #1b3428;
+  --warning: #dfbb6f;
+  --warning-soft: #33291a;
+  --danger: #f08a76;
+  --danger-soft: #3a1f1a;
+  --series-buy: #3fa36c;
+  --series-bulk: #6f8ff0;
+  --tone-0-bg: #1d3226; --tone-0-fg: #94c98a;
+  --tone-1-bg: #332b1b; --tone-1-fg: #dcb86e;
+  --tone-2-bg: #1e2737; --tone-2-fg: #93aedc;
+  --tone-3-bg: #35231d; --tone-3-fg: #df9f86;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-md: 0 10px 28px -10px rgb(0 0 0 / 60%);
+  --shadow-lg: 0 30px 80px -20px rgb(0 0 0 / 70%);
+  --scrim: rgb(0 0 0 / 60%);
+  color-scheme: dark;
+}
+
+:root {
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+}
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); transition: background .25s, color .25s }
+button, input, select { font: inherit }
+button, a, input, select { -webkit-tap-highlight-color: transparent }
+button { cursor: pointer; color: inherit; transition: background .18s, color .18s, border-color .18s, box-shadow .18s, transform .18s }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px }
+a { color: inherit; text-decoration: none }
+button:active { transform: translateY(1px) }
+h1, h2, h3, p { margin: 0 }
+h1, h2, h3 { font-family: var(--font-head) }
+button svg { flex-shrink: 0 }
+button:disabled { opacity: .5; cursor: not-allowed }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0) }
