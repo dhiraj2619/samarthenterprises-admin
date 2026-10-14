@@ -28,7 +28,7 @@ export default function Login({ onLogin, theme, onToggleTheme }) {
     <form className="login-card" onSubmit={submit}>
       <div className="brand login-brand"><img className="brand-logo" src="/samarthlogo.png" alt="Samarth Enterprises" /></div>
       <h1>Sign in to your workspace</h1>
-      <p className="login-sub">Manage your catalogue, categories and Nohar referrals.</p>
+      <p className="login-sub">Manage your catalogue, categories and broadcasts.</p>
       {error && <div className="notice error" role="alert">{error}</div>}
       <label className="field"><span>Email</span><input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required autoFocus /></label>
       <label className="field"><span>Password</span>

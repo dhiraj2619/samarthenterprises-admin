@@ -60,8 +60,13 @@ export const api = {
   updateCategory: (id, body) => request(`/categories/update/${id}`, { method: 'PUT', body }),
   deleteCategory: id => request(`/categories/delete/${id}`, { method: 'DELETE' }),
 
-  referrals: query => request('/referrals/admin/get-all', { query }),
-  referralSummary: () => request('/referrals/admin/summary'),
-  createReferral: body => request('/referrals/admin/add', { method: 'POST', body }),
-  updateReferral: (id, body) => request(`/referrals/update/${id}`, { method: 'PUT', body }),
+  broadcasts: query => request('/broadcasts/admin/get-all', { query }),
+  createBroadcast: form => request('/broadcasts/add', { method: 'POST', body: form }),
+  updateBroadcast: (id, form) => request(`/broadcasts/update/${id}`, { method: 'PUT', body: form }),
+  deleteBroadcast: id => request(`/broadcasts/delete/${id}`, { method: 'DELETE' }),
+
+  distributors: query => request('/distributors/admin/get-all', { query }),
+  createDistributor: form => request('/distributors/add', { method: 'POST', body: form }),
+  updateDistributor: (id, form) => request(`/distributors/update/${id}`, { method: 'PUT', body: form }),
+  deleteDistributor: id => request(`/distributors/delete/${id}`, { method: 'DELETE' }),
 }

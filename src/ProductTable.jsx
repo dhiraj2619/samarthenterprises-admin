@@ -11,7 +11,6 @@ export default function ProductTable({ items, onEdit, compact = false }) {
           <th>Images</th>
           <th>Most buy</th>
           <th>Stock</th>
-          {!compact && <><th>HSN code</th><th>GST rate</th><th>Rating</th></>}
           <th><span className="sr-only">Actions</span></th>
         </tr>
       </thead>
@@ -24,7 +23,7 @@ export default function ProductTable({ items, onEdit, compact = false }) {
                 <span className={`product-thumb tone-${index % 4}`}>{images[0] ? <img src={images[0].url} alt="" loading="lazy" /> : <Icon name="products" size={22} />}</span>
                 <div>
                   <strong>{item.name}</strong>
-                  {item.isActive === false ? <small className="hidden-tag">Hidden from website</small> : item.hsnCode && <small>HSN {item.hsnCode}</small>}
+                  {item.isActive === false && <small className="hidden-tag">Hidden from website</small>}
                 </div>
               </div>
             </td>
@@ -38,11 +37,6 @@ export default function ProductTable({ items, onEdit, compact = false }) {
             </td>
             <td>{item.isMostBuy ? <span className="badge gold"><Icon name="star" size={12} />Yes</span> : <span className="muted">—</span>}</td>
             <td><span className={`badge ${item.inStock ? '' : 'out'}`}><i />{item.inStock ? 'In stock' : 'Out of stock'}</span></td>
-            {!compact && <>
-              <td>{item.hsnCode || <span className="muted">—</span>}</td>
-              <td>{item.gstRate !== undefined && item.gstRate !== null ? `${item.gstRate}%` : <span className="muted">—</span>}</td>
-              <td>{item.ratings ? <span className="rating"><Icon name="star" size={14} />{Number(item.ratings).toFixed(1)}</span> : <span className="muted">—</span>}</td>
-            </>}
             <td><button className="text-button" onClick={() => onEdit(item)}>Edit <Icon name="arrow" size={15} /></button></td>
           </tr>
         })}

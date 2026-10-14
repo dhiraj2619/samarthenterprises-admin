@@ -3,8 +3,7 @@ import Icon from './Icon.jsx'
 import { api } from './api.js'
 
 const MAX_IMAGES = 10
-const GST_RATES = ['0', '5', '12', '18', '28']
-const blank = { name: '', description: '', categoryId: '', ratings: '', rewardPoints: '', inStock: true, isMostBuy: false, isActive: true, hsnCode: '', gstRate: '5', buyNowUrl: '', bulkPurchaseUrl: '', images: [] }
+const blank = { name: '', description: '', categoryId: '', inStock: true, isMostBuy: false, isActive: true, buyNowUrl: '', bulkPurchaseUrl: '', images: [] }
 const noharPattern = 'https://(www\\.)?nohar\\.in(/.*)?'
 let nextKey = 0
 
@@ -35,13 +34,9 @@ const fromProduct = product => ({
   name: product.name || '',
   description: product.description || '',
   categoryId: product.categoryId?._id || product.categoryId || '',
-  ratings: product.ratings ?? '',
-  rewardPoints: product.rewardPoints ? String(product.rewardPoints) : '',
   inStock: product.inStock !== false,
   isMostBuy: Boolean(product.isMostBuy),
   isActive: product.isActive !== false,
-  hsnCode: product.hsnCode || '',
-  gstRate: String(product.gstRate ?? 5),
   buyNowUrl: product.buyNowUrl || '',
   bulkPurchaseUrl: product.bulkPurchaseUrl || '',
   images: (product.images || []).map(image => ({ key: nextKey++, public_id: image.public_id, url: image.url })),
@@ -134,7 +129,7 @@ export default function ProductForm({ productId, categories, onCreateCategory, o
     event.preventDefault()
     if (missing.length || busy || saving) return
     const form = new FormData()
-    for (const key of ['name', 'description', 'categoryId', 'ratings', 'rewardPoints', 'hsnCode', 'gstRate', 'buyNowUrl', 'bulkPurchaseUrl']) {
+    for (const key of ['name', 'description', 'categoryId', 'buyNowUrl', 'bulkPurchaseUrl']) {
       form.append(key, String(values[key]).trim())
     }
     for (const key of ['inStock', 'isMostBuy', 'isActive']) form.append(key, String(values[key]))
@@ -223,15 +218,7 @@ export default function ProductForm({ productId, categories, onCreateCategory, o
           </div>
         </section>
 
-        <section className="panel form-card">
-          <div className="card-head"><h2>Tax details</h2><p>Used for invoicing and compliance.</p></div>
-          <div className="card-body field-row">
-            <label className="field"><span>HSN code</span><input value={values.hsnCode} onChange={set('hsnCode')} inputMode="numeric" pattern="[0-9]{4,8}" title="4 to 8 digits" placeholder="e.g. 3004" /></label>
-            <label className="field"><span>GST rate</span><select value={values.gstRate} onChange={set('gstRate')}>{GST_RATES.map(rate => <option key={rate} value={rate}>{rate}%</option>)}</select></label>
-          </div>
-        </section>
-
-        <section className="panel form-card">
+<section className="panel form-card">
           <div className="card-head"><h2>Nohar links</h2><p>Where the Buy now and Bulk purchase buttons send visitors. Sales happen on nohar.in. Leave blank to use the Nohar home page.</p></div>
           <div className="card-body field-row">
             <label className="field"><span><Icon name="cart" size={13} /> Buy now link</span><input type="url" value={values.buyNowUrl} onChange={set('buyNowUrl')} pattern={noharPattern} title="A https://nohar.in link" placeholder="https://nohar.in/product/…" /></label>
@@ -260,11 +247,7 @@ export default function ProductForm({ productId, categories, onCreateCategory, o
               </select>}
               {categoryError && <small className="field-error">{categoryError}</small>}
             </div>
-            <div className="field-row">
-              <label className="field"><span>Ratings</span><input type="number" min="0" max="5" step="0.1" value={values.ratings} onChange={set('ratings')} placeholder="0 to 5" /></label>
-              <label className="field"><span>Reward points</span><input type="number" min="0" step="1" value={values.rewardPoints} onChange={set('rewardPoints')} placeholder="e.g. 50" /></label>
-            </div>
-            <div className="field"><span id="stock-label">Stock</span>
+<div className="field"><span id="stock-label">Stock</span>
               <div className="segmented" role="radiogroup" aria-labelledby="stock-label">
                 <button type="button" role="radio" aria-checked={values.inStock} className={values.inStock ? 'on' : ''} onClick={() => setValues(v => ({ ...v, inStock: true }))}>In stock</button>
                 <button type="button" role="radio" aria-checked={!values.inStock} className={values.inStock ? '' : 'on off'} onClick={() => setValues(v => ({ ...v, inStock: false }))}>Out of stock</button>

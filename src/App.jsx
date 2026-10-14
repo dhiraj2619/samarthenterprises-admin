@@ -6,28 +6,28 @@ import ProductForm from './ProductForm.jsx'
 import ProductTable from './ProductTable.jsx'
 import Dashboard from './Dashboard.jsx'
 import { CategoryGrid, CategoryModal } from './Categories.jsx'
-import { ReferralModal, ReferralTable } from './Referrals.jsx'
+import { BroadcastModal, BroadcastTable } from './Broadcasts.jsx'
+import { DistributorModal, DistributorTable } from './Distributors.jsx'
 import { ToastStack } from './Toasts.jsx'
 import { useToasts } from './toasts.js'
 import { api, getToken, onUnauthorized, setToken } from './api.js'
 
-const labels = { dashboard: 'Dashboard', products: 'Products', 'product-form': 'Products', categories: 'Categories', referrals: 'Nohar referrals', offers: 'Offers', distributors: 'Distributors' }
-const singular = { products: 'product', categories: 'category', referrals: 'referral' }
-const listPages = ['products', 'categories', 'referrals']
+const labels = { dashboard: 'Dashboard', products: 'Products', 'product-form': 'Products', categories: 'Categories', broadcasts: 'Broadcasting', offers: 'Offers', distributors: 'Distributors' }
+const singular = { products: 'product', categories: 'category', broadcasts: 'broadcast', distributors: 'distributor' }
+const listPages = ['products', 'categories', 'broadcasts', 'distributors']
 const filterOptions = {
   products: ['All products', 'In stock', 'Out of stock', 'Most buy', 'Hidden from website'],
   categories: ['All statuses', 'Active', 'Draft'],
-  referrals: ['All referrals', 'Buy now', 'Bulk purchase', 'Awaiting update', 'Converted', 'Not converted'],
+  broadcasts: ['All broadcasts'],
+  distributors: ['All distributors'],
 }
 // Maps each filter option to the backend's query parameters.
 const filterQuery = {
   'In stock': { inStock: true }, 'Out of stock': { inStock: false }, 'Most buy': { isMostBuy: true }, 'Hidden from website': { isActive: false },
   Active: { isActive: true }, Draft: { isActive: false },
-  'Buy now': { type: 'buy' }, 'Bulk purchase': { type: 'bulk' },
-  'Awaiting update': { status: 'REDIRECTED' }, Converted: { status: 'CONVERTED' }, 'Not converted': { status: 'NOT_CONVERTED' },
 }
-const fetchers = { products: api.products, categories: api.categories, referrals: api.referrals }
-const PAGE_SIZE = { products: 20, categories: 50, referrals: 25 }
+const fetchers = { products: api.products, categories: api.categories, broadcasts: api.broadcasts, distributors: api.distributors }
+const PAGE_SIZE = { products: 20, categories: 50, broadcasts: 20, distributors: 20 }
 
 function readTheme() { try { const saved = localStorage.getItem('samarth-admin-theme'); if (saved === 'light' || saved === 'dark') return saved } catch { /* storage unavailable */ } return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' }
 
@@ -47,10 +47,11 @@ export default function App() {
   const [pageNumber, setPageNumber] = useState(1)
   const [reload, setReload] = useState(0)
   const [categories, setCategories] = useState([])
-  const [summary, setSummary] = useState({ key: null, data: null, recent: [], error: '' })
+  const [summary, setSummary] = useState({ key: null, data: null, error: '' })
   const [list, setList] = useState({ key: null, items: [], pagination: null, error: '' })
   const [categoryModal, setCategoryModal] = useState(null)
-  const [referralModal, setReferralModal] = useState(null)
+  const [broadcastModal, setBroadcastModal] = useState(null)
+  const [distributorModal, setDistributorModal] = useState(null)
   const { toasts, toast, dismiss } = useToasts()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -89,9 +90,20 @@ export default function App() {
   useEffect(() => {
     if (!signedIn) return undefined
     let cancelled = false
-    Promise.all([api.referralSummary(), api.referrals({ limit: 6 })])
-      .then(([sum, recent]) => { if (!cancelled) setSummary({ key: summaryKey, data: sum.data, recent: recent.data, error: '' }) })
-      .catch(err => { if (!cancelled) setSummary({ key: summaryKey, data: null, recent: [], error: err.message }) })
+    // Product counts come from each filter's pagination total (limit 1 keeps the responses tiny).
+    // Broadcasts are optional so the dashboard still loads on a backend without that feature.
+    const count = query => api.products({ limit: 1, ...query }).then(res => res.pagination.total)
+    Promise.all([
+      api.products({ limit: 5 }),
+      count({ inStock: false }),
+      count({ isActive: false }),
+      count({ isMostBuy: true }),
+      api.broadcasts({ limit: 4 }).then(res => ({ total: res.pagination.total, recent: res.data })).catch(() => null),
+    ])
+      .then(([latest, outOfStock, hidden, mostBuy, broadcasts]) => {
+        if (!cancelled) setSummary({ key: summaryKey, data: { products: { total: latest.pagination.total, recent: latest.data, outOfStock, hidden, mostBuy }, broadcasts }, error: '' })
+      })
+      .catch(err => { if (!cancelled) setSummary({ key: summaryKey, data: null, error: err.message }) })
     return () => { cancelled = true }
   }, [signedIn, summaryKey])
 
@@ -115,7 +127,17 @@ export default function App() {
   const openProductForm = (id = null) => { setFormProductId(id); setPage('product-form'); setMobile(false); window.scrollTo(0, 0) }
   const showCategoryProducts = category => { navigate('products'); setCategoryFilter(category._id) }
   const signOut = () => { setMenuOpen(false); setToken(null); setAdmin(null); setSessionNote('You have signed out.'); setPage('dashboard') }
-  const addNew = () => page === 'referrals' ? setReferralModal({ record: null }) : page === 'categories' ? setCategoryModal({ record: null }) : openProductForm()
+  const addNew = () => page === 'distributors' ? setDistributorModal({ record: null }) : page === 'broadcasts' ? setBroadcastModal({ record: null }) : page === 'categories' ? setCategoryModal({ record: null }) : openProductForm()
+  const deleteBroadcast = async broadcast => {
+    if (!window.confirm(`Delete the broadcast “${broadcast.title}”? Its image will be removed too.`)) return
+    try { await api.deleteBroadcast(broadcast._id); toast(`Broadcast “${broadcast.title}” deleted.`); refresh() }
+    catch (err) { toast(`Couldn't delete “${broadcast.title}”: ${err.message}`, 'error') }
+  }
+  const deleteDistributor = async distributor => {
+    if (!window.confirm(`Delete the distributor “${distributor.companyName}”?`)) return
+    try { await api.deleteDistributor(distributor._id); toast(`Distributor “${distributor.companyName}” deleted.`); refresh() }
+    catch (err) { toast(`Couldn't delete “${distributor.companyName}”: ${err.message}`, 'error') }
+  }
   const createCategoryInline = async name => {
     const form = new FormData()
     form.append('name', name)
@@ -133,7 +155,6 @@ export default function App() {
 
   const listLoading = listKey !== null && list.key !== listKey
   const summaryLoading = summary.key !== summaryKey
-  const awaiting = summary.data?.byStatus.REDIRECTED || 0
   const productCount = summary.data?.products.total
   const initials = (admin.name || 'SE').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
   const pagination = list.key === listKey ? list.pagination : null
@@ -151,8 +172,9 @@ export default function App() {
           <button className={page === 'products' || page === 'product-form' ? 'selected' : ''} onClick={() => navigate('products')}>All products{productCount !== undefined && <span>{productCount}</span>}</button>
           <button className={page === 'categories' ? 'selected' : ''} onClick={() => navigate('categories')}>Categories<span>{categories.length}</span></button>
         </div>}
-        <button className={`nav-item ${page === 'referrals' ? 'active' : ''}`} onClick={() => navigate('referrals')}><Icon name="external" />Nohar referrals{awaiting > 0 && <span className="nav-count">{awaiting}</span>}</button>
-        {['offers', 'distributors'].map(key => <button key={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => navigate(key)}><Icon name={key} />{labels[key]}<span className="soon-tag">Soon</span></button>)}
+        <button className={`nav-item ${page === 'broadcasts' ? 'active' : ''}`} onClick={() => navigate('broadcasts')}><Icon name="broadcast" />Broadcasting</button>
+        <button className={`nav-item ${page === 'distributors' ? 'active' : ''}`} onClick={() => navigate('distributors')}><Icon name="distributors" />Distributors</button>
+        {['offers'].map(key => <button key={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => navigate(key)}><Icon name={key} />{labels[key]}<span className="soon-tag">Soon</span></button>)}
       </nav>
       <div className="sidebar-bottom">
         <div className="catalogue-note"><Icon name="leaf" /><strong>A catalogue that grows<br />with your business.</strong><p>Your products. Your network.<br />All in one place.</p><button onClick={() => navigate('products')}>Manage catalogue <Icon name="arrow" size={16} /></button></div>
@@ -180,16 +202,17 @@ export default function App() {
             <div className="eyebrow">{page === 'dashboard' ? new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Samarth Enterprises / Admin'}</div>
             <h1>{labels[page]}</h1>
             <p>{{
-              dashboard: 'Catalogue interest and Nohar referrals at a glance. Sales happen on nohar.in and are recorded here.',
-              products: 'Search the catalogue by product name, description or HSN code.',
+              dashboard: 'Your catalogue, categories and broadcasts at a glance.',
+              products: 'Search the catalogue by product name or description.',
               categories: 'Group your products into categories. Every product belongs to one category.',
-              referrals: 'Every Buy now and Bulk purchase click that sent a visitor to nohar.in. Record the sale outcome here.',
+              broadcasts: 'Announcements with an image, a message and an optional link. Newest first.',
+              distributors: 'Companies that distribute your products, with their contact person and location.',
             }[page] || 'This section is not connected to the backend yet.'}</p>
           </div>
-          {!['offers', 'distributors'].includes(page) && <div className="heading-actions">
+          {page !== 'offers' && <div className="heading-actions">
             {listPages.includes(page) && pagination && <span className="count-pill">{pagination.total} {page}</span>}
             {page === 'dashboard' && <button className="secondary" onClick={refresh} disabled={summaryLoading}><Icon name="trend" size={16} />{summaryLoading ? 'Refreshing…' : 'Refresh'}</button>}
-            <button className="primary" onClick={addNew}><Icon name="plus" size={18} />{page === 'referrals' ? 'Log referral' : `Add ${singular[page] || 'product'}`}</button>
+            <button className="primary" onClick={addNew}><Icon name="plus" size={18} />Add {singular[page] || 'product'}</button>
           </div>}
         </div>}
 
@@ -200,29 +223,29 @@ export default function App() {
 
           : page === 'dashboard' ? (summary.error ? <ErrorState message={summary.error} onRetry={refresh} />
             : !summary.data ? <div className="panel page-state"><span className="spinner" />Loading dashboard…</div>
-            : <Dashboard summary={summary.data} recent={summary.recent} onNavigate={navigate} onUpdateReferral={record => setReferralModal({ record })} />)
+            : <Dashboard summary={summary.data} categories={categories} onNavigate={navigate} onShowCategory={showCategoryProducts} onEditProduct={item => openProductForm(item._id)} onEditBroadcast={record => setBroadcastModal({ record })} />)
 
-          : ['offers', 'distributors'].includes(page) ? <div className="panel page-state"><Icon name={page} size={30} /><h2>{labels[page]} aren't connected yet</h2><p>There is no {labels[page].toLowerCase()} API in the backend, so nothing here would be saved. Ask for it to be built and it will appear in this space.</p></div>
+          : page === 'offers' ? <div className="panel page-state"><Icon name={page} size={30} /><h2>{labels[page]} aren't connected yet</h2><p>There is no {labels[page].toLowerCase()} API in the backend, so nothing here would be saved. Ask for it to be built and it will appear in this space.</p></div>
 
           : <section className="panel management">
             <div className="toolbar">
-              <label className="search-box"><Icon name="search" size={18} /><input aria-label={`Search ${page}`} placeholder={{ products: 'Search by name, description, HSN…', categories: 'Search categories…', referrals: 'Search by product or Nohar order ID…' }[page]} value={searchInput} onChange={event => setSearchInput(event.target.value)} /></label>
+              <label className="search-box"><Icon name="search" size={18} /><input aria-label={`Search ${page}`} placeholder={{ products: 'Search by name or description…', categories: 'Search categories…', broadcasts: 'Search by title or description…', distributors: 'Search by company, contact, mobile, city or pincode…' }[page]} value={searchInput} onChange={event => setSearchInput(event.target.value)} /></label>
               {page === 'products' && <select aria-label="Filter by category" value={categoryFilter} onChange={event => { setCategoryFilter(event.target.value); setPageNumber(1) }}>
                 <option value="">All categories</option>
                 {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
               </select>}
-              <select aria-label="Filter" value={filter} onChange={event => { setFilter(event.target.value); setPageNumber(1) }}>{filterOptions[page].map(value => <option key={value}>{value}</option>)}</select>
+              {filterOptions[page].length > 1 && <select aria-label="Filter" value={filter} onChange={event => { setFilter(event.target.value); setPageNumber(1) }}>{filterOptions[page].map(value => <option key={value}>{value}</option>)}</select>}
             </div>
             {list.error && list.key === listKey ? <ErrorState message={list.error} onRetry={refresh} inline />
               : listLoading && !list.items.length ? <div className="page-state"><span className="spinner" />Loading {page}…</div>
               : <div className={listLoading ? 'is-refreshing' : ''}>
                 {page === 'products' && list.items.length > 0 && <ProductTable items={list.items} onEdit={item => openProductForm(item._id)} />}
                 {page === 'categories' && list.items.length > 0 && <CategoryGrid items={list.items} onEdit={record => setCategoryModal({ record })} onShowProducts={showCategoryProducts} />}
-                {page === 'referrals' && list.items.length > 0 && <ReferralTable items={list.items} onUpdate={record => setReferralModal({ record })} />}
-                {!list.items.length && <div className="empty"><Icon name={narrowed ? 'search' : page === 'categories' ? 'collections' : page === 'referrals' ? 'external' : 'products'} size={30} />
+                {page === 'distributors' && list.items.length > 0 && <DistributorTable items={list.items} onEdit={record => setDistributorModal({ record })} onDelete={deleteDistributor} />}
+                {page === 'broadcasts' && list.items.length > 0 && <BroadcastTable items={list.items} onEdit={record => setBroadcastModal({ record })} onDelete={deleteBroadcast} />}
+                {!list.items.length && <div className="empty"><Icon name={narrowed ? 'search' : page === 'categories' ? 'collections' : page === 'broadcasts' ? 'broadcast' : page === 'distributors' ? 'distributors' : 'products'} size={30} />
                   {narrowed
                     ? <><h2>No {page} match</h2><p>Try another search or filter.</p></>
-                    : page === 'referrals' ? <><h2>No referrals yet</h2><p>They appear here when visitors click Buy now or Bulk purchase on the catalogue.</p></>
                     : <><h2>No {page} yet</h2><p>Add your first {singular[page]} to get started.</p><button className="primary" onClick={addNew}><Icon name="plus" size={18} />Add {singular[page]}</button></>}
                 </div>}
               </div>}
@@ -241,10 +264,14 @@ export default function App() {
     {categoryModal && <CategoryModal record={categoryModal.record} onClose={() => setCategoryModal(null)}
       onSaved={(category, isNew) => { setCategoryModal(null); toast(isNew ? `Category “${category.name}” created.` : `Category “${category.name}” updated.`); refresh() }}
       onDeleted={category => { setCategoryModal(null); toast(`Category “${category.name}” deleted.`); refresh() }} />}
-    {referralModal && <ReferralModal record={referralModal.record} onClose={() => setReferralModal(null)}
-      onSaved={record => { setReferralModal(null); toast(record.status === 'CONVERTED' ? `Sale of ₹${Number(record.orderValue).toLocaleString('en-IN')} recorded for “${record.productName}”.` : 'Referral saved.'); refresh() }} />}
+    {distributorModal && <DistributorModal record={distributorModal.record} onClose={() => setDistributorModal(null)}
+      onSaved={(distributor, isNew) => { setDistributorModal(null); toast(isNew ? `Distributor “${distributor.companyName}” added.` : `Distributor “${distributor.companyName}” updated.`); refresh() }}
+      onDeleted={distributor => { setDistributorModal(null); toast(`Distributor “${distributor.companyName}” deleted.`); refresh() }} />}
+    {broadcastModal && <BroadcastModal record={broadcastModal.record} onClose={() => setBroadcastModal(null)}
+      onSaved={(broadcast, isNew) => { setBroadcastModal(null); toast(isNew ? `Broadcast “${broadcast.title}” published.` : `Broadcast “${broadcast.title}” updated.`); refresh() }}
+      onDeleted={broadcast => { setBroadcastModal(null); toast(`Broadcast “${broadcast.title}” deleted.`); refresh() }} />}
     <ToastStack toasts={toasts} onDismiss={dismiss} />
-    {help && <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-label="Workspace help"><div className="panel-heading"><h2>Your Samarth workspace</h2><button autoFocus className="icon-button" aria-label="Close help" onClick={() => setHelp(false)}><Icon name="close" /></button></div><p>Manage your catalogue from Products and organise it into Categories. Everything you change here is saved to the Samarth backend and appears on the website.</p><p>Samarth is a catalogue: the Buy now and Bulk purchase buttons send visitors to nohar.in, where the sale happens. Each redirect appears under Nohar referrals. Mark it Converted with the order value to record revenue here.</p><button className="primary" onClick={() => setHelp(false)}>Got it</button></section></div>}
+    {help && <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-label="Workspace help"><div className="panel-heading"><h2>Your Samarth workspace</h2><button autoFocus className="icon-button" aria-label="Close help" onClick={() => setHelp(false)}><Icon name="close" /></button></div><p>Manage your catalogue from Products and organise it into Categories. Everything you change here is saved to the Samarth backend and appears on the website.</p><p>Use Broadcasting to publish announcements with an image, a message and an optional link.</p><button className="primary" onClick={() => setHelp(false)}>Got it</button></section></div>}
   </div>
 }
 
