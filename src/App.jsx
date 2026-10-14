@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import Icon from './Icon.jsx'
 import Login from './Login.jsx'
@@ -7,6 +7,8 @@ import ProductTable from './ProductTable.jsx'
 import Dashboard from './Dashboard.jsx'
 import { CategoryGrid, CategoryModal } from './Categories.jsx'
 import { ReferralModal, ReferralTable } from './Referrals.jsx'
+import { ToastStack } from './Toasts.jsx'
+import { useToasts } from './toasts.js'
 import { api, getToken, onUnauthorized, setToken } from './api.js'
 
 const labels = { dashboard: 'Dashboard', products: 'Products', 'product-form': 'Products', categories: 'Categories', referrals: 'Nohar referrals', offers: 'Offers', distributors: 'Distributors' }
@@ -49,8 +51,19 @@ export default function App() {
   const [list, setList] = useState({ key: null, items: [], pagination: null, error: '' })
   const [categoryModal, setCategoryModal] = useState(null)
   const [referralModal, setReferralModal] = useState(null)
-  const [notice, setNotice] = useState('')
+  const { toasts, toast, dismiss } = useToasts()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
   const [help, setHelp] = useState(false)
+
+  // Close the profile menu on an outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const close = event => { if (event.type === 'keydown' ? event.key === 'Escape' : !menuRef.current?.contains(event.target)) setMenuOpen(false) }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', close)
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close) }
+  }, [menuOpen])
 
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('samarth-admin-theme', theme) } catch { /* storage unavailable */ } }, [theme])
   useEffect(() => onUnauthorized(() => { setAdmin(null); setSessionNote('Your session has ended. Please sign in again.') }), [])
@@ -69,8 +82,8 @@ export default function App() {
   const refreshCategories = () => api.categories().then(({ data }) => { setCategories(data); return data })
   useEffect(() => {
     if (!signedIn) return
-    api.categories().then(({ data }) => setCategories(data)).catch(err => setNotice(`Couldn't load categories: ${err.message}`))
-  }, [signedIn, reload])
+    api.categories().then(({ data }) => setCategories(data)).catch(err => toast(`Couldn't load categories: ${err.message}`, 'error'))
+  }, [signedIn, reload, toast])
 
   const summaryKey = `${reload}`
   useEffect(() => {
@@ -99,21 +112,22 @@ export default function App() {
     setFilter(nextFilter || filterOptions[next]?.[0] || ''); setMobile(false); window.scrollTo(0, 0)
   }
   const refresh = () => setReload(r => r + 1)
-  const openProductForm = (id = null) => { setFormProductId(id); setNotice(''); setPage('product-form'); setMobile(false); window.scrollTo(0, 0) }
+  const openProductForm = (id = null) => { setFormProductId(id); setPage('product-form'); setMobile(false); window.scrollTo(0, 0) }
   const showCategoryProducts = category => { navigate('products'); setCategoryFilter(category._id) }
-  const signOut = () => { setToken(null); setAdmin(null); setSessionNote(''); setPage('dashboard') }
+  const signOut = () => { setMenuOpen(false); setToken(null); setAdmin(null); setSessionNote('You have signed out.'); setPage('dashboard') }
   const addNew = () => page === 'referrals' ? setReferralModal({ record: null }) : page === 'categories' ? setCategoryModal({ record: null }) : openProductForm()
   const createCategoryInline = async name => {
     const form = new FormData()
     form.append('name', name)
     const { data } = await api.createCategory(form)
     await refreshCategories()
+    toast(`Category “${data.name}” created.`)
     return data
   }
 
   if (admin === undefined) return <div className="boot-screen"><span className="spinner" />Checking your session…</div>
   if (!admin) return <>
-    {sessionNote && <div className="session-note" role="status">{sessionNote}</div>}
+    {sessionNote && <div key={sessionNote} className="session-note" role="status" onAnimationEnd={() => setSessionNote('')}>{sessionNote}</div>}
     <Login theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} onLogin={data => { setAdmin(data); setSessionNote(''); navigate('dashboard'); refresh() }} />
   </>
 
@@ -128,7 +142,7 @@ export default function App() {
   return <div className="app-shell">
     {mobile && <button className="scrim" aria-label="Close navigation" onClick={() => setMobile(false)} />}
     <aside className={`sidebar ${mobile ? 'open' : ''}`}>
-      <a className="brand" href="#dashboard" onClick={() => navigate('dashboard')}><span className="brand-mark">S<span>•</span></span><span>SAMARTH<small>ENTERPRISES</small></span></a>
+      <a className="brand" href="#dashboard" onClick={() => navigate('dashboard')}><img className="brand-logo" src="/samarthlogo.png" alt="Samarth Enterprises" /></a>
       <div className="workspace-label">WORKSPACE <span>ADMIN</span></div>
       <nav aria-label="Main navigation">
         <button className={page === 'dashboard' ? 'nav-item active' : 'nav-item'} onClick={() => navigate('dashboard')}><Icon name="dashboard" />Dashboard</button>
@@ -152,7 +166,13 @@ export default function App() {
           <span>Workspace</span><span>/</span>
           {page === 'product-form' ? <><button className="crumb-link" onClick={() => navigate('products')}>Products</button><span>/</span><strong>{formProductId ? 'Edit product' : 'Add product'}</strong></> : <strong>{labels[page]}</strong>}
         </div>
-        <div className="topbar-actions"><span className="demo-pill"><span />Live data</span><button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} /></button><button className="help-button" onClick={() => setHelp(true)}><Icon name="help" size={17} />Help</button><span className="avatar small" title={admin.email}>{initials}</span></div>
+        <div className="topbar-actions"><span className="demo-pill"><span />Live data</span><button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} /></button><button className="help-button" onClick={() => setHelp(true)}><Icon name="help" size={17} />Help</button><div className="profile-menu" ref={menuRef}>
+          <button className="avatar-button" onClick={() => setMenuOpen(o => !o)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="Account menu"><span className="avatar small">{initials}</span><Icon name="chevron" size={16} /></button>
+          {menuOpen && <div className="menu-popover" role="menu">
+            <div className="menu-user"><strong>{admin.name}</strong><small>{admin.email}</small></div>
+            <button role="menuitem" className="menu-item danger" onClick={signOut}><Icon name="logout" size={17} />Sign out</button>
+          </div>}
+        </div></div>
       </header>
       <main>
         {page !== 'product-form' && <div className="page-heading">
@@ -172,11 +192,10 @@ export default function App() {
             <button className="primary" onClick={addNew}><Icon name="plus" size={18} />{page === 'referrals' ? 'Log referral' : `Add ${singular[page] || 'product'}`}</button>
           </div>}
         </div>}
-        {notice && <div className="notice" role="status"><Icon name="check" size={18} />{notice}<button aria-label="Dismiss notification" onClick={() => setNotice('')}><Icon name="close" size={16} /></button></div>}
 
         {page === 'product-form' ? <ProductForm key={formProductId || 'new'} productId={formProductId} categories={categories} onCreateCategory={createCategoryInline}
-          onSaved={(product, isNew) => { setNotice(isNew ? `“${product.name}” added to your catalogue.` : `“${product.name}” updated.`); navigate('products'); refresh() }}
-          onDeleted={() => { setNotice('Product deleted.'); navigate('products'); refresh() }}
+          onSaved={(product, isNew) => { toast(isNew ? `“${product.name}” added to your catalogue.` : `“${product.name}” updated.`); navigate('products'); refresh() }}
+          onDeleted={product => { toast(`“${product.name}” deleted.`); navigate('products'); refresh() }}
           onCancel={() => navigate('products')} />
 
           : page === 'dashboard' ? (summary.error ? <ErrorState message={summary.error} onRetry={refresh} />
@@ -220,10 +239,11 @@ export default function App() {
       </main>
     </div>
     {categoryModal && <CategoryModal record={categoryModal.record} onClose={() => setCategoryModal(null)}
-      onSaved={(category, isNew) => { setCategoryModal(null); setNotice(isNew ? `Category “${category.name}” created.` : `Category “${category.name}” updated.`); refresh() }}
-      onDeleted={category => { setCategoryModal(null); setNotice(`Category “${category.name}” deleted.`); refresh() }} />}
+      onSaved={(category, isNew) => { setCategoryModal(null); toast(isNew ? `Category “${category.name}” created.` : `Category “${category.name}” updated.`); refresh() }}
+      onDeleted={category => { setCategoryModal(null); toast(`Category “${category.name}” deleted.`); refresh() }} />}
     {referralModal && <ReferralModal record={referralModal.record} onClose={() => setReferralModal(null)}
-      onSaved={record => { setReferralModal(null); setNotice(record.status === 'CONVERTED' ? `Sale of ₹${Number(record.orderValue).toLocaleString('en-IN')} recorded for “${record.productName}”.` : 'Referral saved.'); refresh() }} />}
+      onSaved={record => { setReferralModal(null); toast(record.status === 'CONVERTED' ? `Sale of ₹${Number(record.orderValue).toLocaleString('en-IN')} recorded for “${record.productName}”.` : 'Referral saved.'); refresh() }} />}
+    <ToastStack toasts={toasts} onDismiss={dismiss} />
     {help && <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-label="Workspace help"><div className="panel-heading"><h2>Your Samarth workspace</h2><button autoFocus className="icon-button" aria-label="Close help" onClick={() => setHelp(false)}><Icon name="close" /></button></div><p>Manage your catalogue from Products and organise it into Categories. Everything you change here is saved to the Samarth backend and appears on the website.</p><p>Samarth is a catalogue: the Buy now and Bulk purchase buttons send visitors to nohar.in, where the sale happens. Each redirect appears under Nohar referrals. Mark it Converted with the order value to record revenue here.</p><button className="primary" onClick={() => setHelp(false)}>Got it</button></section></div>}
   </div>
 }

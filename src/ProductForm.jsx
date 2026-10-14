@@ -156,7 +156,7 @@ export default function ProductForm({ productId, categories, onCreateCategory, o
   const remove = async () => {
     if (!window.confirm(`Delete "${values.name}"? Its images will be removed too. This cannot be undone.`)) return
     setSaving(true)
-    try { await api.deleteProduct(productId); onDeleted() }
+    try { await api.deleteProduct(productId); onDeleted({ name: values.name }) }
     catch (err) { setError(err.message); setSaving(false) }
   }
 

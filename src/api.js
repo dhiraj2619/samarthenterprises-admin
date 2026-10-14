@@ -1,7 +1,10 @@
-// Thin client for the Samarth backend. In development, /api is proxied to the backend by Vite
-// (see vite.config.js). For a deployed panel, set VITE_API_URL to the backend's full /api/v1 URL.
+// Thin client for the Samarth backend. VITE_API_URL (see .env) is the backend's full /api/v1 URL.
+// Set it to /api/v1 to go through the Vite dev proxy to a local backend instead (see vite.config.js).
 export const API_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/$/, '')
-const UNREACHABLE = "Can't reach the Samarth backend. Make sure it is running (npm start in samarth-backend) and that its terminal shows \"Samarth backend running on port 5000\"."
+const REMOTE = /^https?:\/\//.test(API_URL)
+const UNREACHABLE = REMOTE
+  ? `Can't reach the Samarth backend at ${new URL(API_URL).host}. If it was asleep it can take up to a minute to wake. Wait a moment and try again.`
+  : "Can't reach the Samarth backend. Make sure it is running (npm start in samarth-backend) and that its terminal shows \"Samarth backend running on port 5000\"."
 const TOKEN_KEY = 'samarth-admin-token'
 
 export const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) } catch { return null } }
