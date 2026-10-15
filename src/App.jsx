@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import Icon from './Icon.jsx'
 import Login from './Login.jsx'
@@ -6,7 +6,7 @@ import ProductForm from './ProductForm.jsx'
 import ProductTable from './ProductTable.jsx'
 import Dashboard from './Dashboard.jsx'
 import { CategoryGrid, CategoryModal } from './Categories.jsx'
-import { BroadcastModal, BroadcastTable } from './Broadcasts.jsx'
+import { BroadcastDrawer, BroadcastModal, BroadcastTable } from './Broadcasts.jsx'
 import { DistributorModal, DistributorTable } from './Distributors.jsx'
 import { OfferModal, OfferTable } from './Offers.jsx'
 import { EnquiryModal, EnquiryTable } from './Enquiries.jsx'
@@ -58,6 +58,8 @@ export default function App() {
   const [list, setList] = useState({ key: null, items: [], pagination: null, error: '' })
   const [categoryModal, setCategoryModal] = useState(null)
   const [broadcastModal, setBroadcastModal] = useState(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const [distributorModal, setDistributorModal] = useState(null)
   const [offerModal, setOfferModal] = useState(null)
   const [enquiryModal, setEnquiryModal] = useState(null)
@@ -208,7 +210,7 @@ export default function App() {
           <span>Workspace</span><span>/</span>
           {page === 'product-form' ? <><button className="crumb-link" onClick={() => navigate('products')}>Products</button><span>/</span><strong>{formProductId ? 'Edit product' : 'Add product'}</strong></> : <strong>{labels[page]}</strong>}
         </div>
-        <div className="topbar-actions"><span className="demo-pill"><span />Live data</span><button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} /></button><button className="help-button" onClick={() => setHelp(true)}><Icon name="help" size={17} />Help</button><div className="profile-menu" ref={menuRef}>
+        <div className="topbar-actions"><span className="demo-pill"><span />Live data</span><button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} /></button><button className="theme-toggle drawer-toggle" onClick={() => setDrawerOpen(true)} aria-label="Show broadcasts" title="Broadcasts"><Icon name="broadcast" size={18} />{summary.data?.broadcasts?.total > 0 && <span className="toggle-count">{summary.data.broadcasts.total}</span>}</button><button className="help-button" onClick={() => setHelp(true)}><Icon name="help" size={17} />Help</button><div className="profile-menu" ref={menuRef}>
           <button className="avatar-button" onClick={() => setMenuOpen(o => !o)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="Account menu"><span className="avatar small">{initials}</span><Icon name="chevron" size={16} /></button>
           {menuOpen && <div className="menu-popover" role="menu">
             <div className="menu-user"><strong>{admin.name}</strong><small>{admin.email}</small></div>
@@ -304,6 +306,7 @@ export default function App() {
       onSaved={(broadcast, isNew) => { setBroadcastModal(null); toast(isNew ? `Broadcast “${broadcast.title}” published.` : `Broadcast “${broadcast.title}” updated.`); refresh() }}
       onDeleted={broadcast => { setBroadcastModal(null); toast(`Broadcast “${broadcast.title}” deleted.`); refresh() }} />}
     <ToastStack toasts={toasts} onDismiss={dismiss} />
+    {drawerOpen && <BroadcastDrawer reload={reload} onClose={closeDrawer} onEdit={record => setBroadcastModal({ record })} onAdd={() => setBroadcastModal({ record: null })} onViewAll={() => { closeDrawer(); navigate('broadcasts') }} />}
     {help && <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-label="Workspace help"><div className="panel-heading"><h2>Your Samarth workspace</h2><button autoFocus className="icon-button" aria-label="Close help" onClick={() => setHelp(false)}><Icon name="close" /></button></div><p>Manage your catalogue from Products and organise it into Categories. Everything you change here is saved to the Samarth backend and appears on the website.</p><p>Use Broadcasting to publish announcements with an image, a message and an optional link.</p><button className="primary" onClick={() => setHelp(false)}>Got it</button></section></div>}
   </div>
 }

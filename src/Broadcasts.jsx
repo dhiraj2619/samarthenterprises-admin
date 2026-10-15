@@ -29,6 +29,57 @@ export function BroadcastTable({ items, onEdit, onDelete }) {
   </div>
 }
 
+// Slide-in panel from the right listing every broadcast, newest first. `reload` changes refetch the list.
+export function BroadcastDrawer({ reload, onClose, onEdit, onAdd, onViewAll }) {
+  const [state, setState] = useState({ loading: true, error: '', items: [], total: 0 })
+  const closeButton = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    api.broadcasts({ limit: 100 })
+      .then(res => { if (!cancelled) setState({ loading: false, error: '', items: res.data, total: res.pagination.total }) })
+      .catch(err => { if (!cancelled) setState({ loading: false, error: err.message, items: [], total: 0 }) })
+    return () => { cancelled = true }
+  }, [reload])
+
+  useEffect(() => {
+    closeButton.current?.focus()
+    const onKey = event => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return <div className="drawer-backdrop" onClick={onClose}>
+    <aside className="drawer" role="dialog" aria-modal="true" aria-label="Broadcasts" onClick={event => event.stopPropagation()}>
+      <div className="drawer-head">
+        <div><h2>Broadcasts</h2><p>{state.loading ? 'Loading…' : `${state.total} broadcast${state.total === 1 ? '' : 's'}, newest first`}</p></div>
+        <button ref={closeButton} className="icon-button" aria-label="Close broadcasts" onClick={onClose}><Icon name="close" /></button>
+      </div>
+      <div className="drawer-actions">
+        <button className="primary" onClick={onAdd}><Icon name="plus" size={16} />New broadcast</button>
+        <button className="text-button" onClick={onViewAll}>Open table view <Icon name="arrow" size={15} /></button>
+      </div>
+      <div className="drawer-body">
+        {state.loading ? <div className="page-state"><span className="spinner" />Loading broadcasts…</div>
+          : state.error ? <div className="page-state"><Icon name="alert" size={24} /><p>{state.error}</p></div>
+          : !state.items.length ? <div className="empty small"><Icon name="broadcast" size={26} /><p>No broadcasts yet.</p></div>
+          : state.items.map(item => <article className="drawer-item" key={item._id}>
+            {item.image?.url && <img src={item.image.url} alt="" loading="lazy" />}
+            <div className="drawer-item-body">
+              <time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+              <div className="drawer-item-foot">
+                {item.link ? <a className="table-link" href={item.link} target="_blank" rel="noreferrer">{hostOf(item.link)}<Icon name="external" size={13} /></a> : <span />}
+                <button className="text-button" onClick={() => onEdit(item)}>Edit <Icon name="arrow" size={15} /></button>
+              </div>
+            </div>
+          </article>)}
+      </div>
+    </aside>
+  </div>
+}
+
 // Create (record = null) or edit a broadcast. An image is required for new broadcasts.
 export function BroadcastModal({ record, onSaved, onDeleted, onClose }) {
   const [values, setValues] = useState({ title: record?.title || '', description: record?.description || '', link: record?.link || '' })
