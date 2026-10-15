@@ -65,6 +65,24 @@ export const api = {
   updateBroadcast: (id, form) => request(`/broadcasts/update/${id}`, { method: 'PUT', body: form }),
   deleteBroadcast: id => request(`/broadcasts/delete/${id}`, { method: 'DELETE' }),
 
+  // Redirect tracking (Buy now / Bulk purchase clicks to nohar.in), shown on the dashboard.
+  redirectSummary: () => request('/referrals/admin/summary'),
+
+  settings: () => request('/settings/get'),
+  updateProfile: body => request('/settings/profile', { method: 'PUT', body }),
+  addQuoteSlide: form => request('/settings/quote-slides/add', { method: 'POST', body: form }),
+  updateQuoteSlide: (id, form) => request(`/settings/quote-slides/update/${id}`, { method: 'PUT', body: form }),
+  deleteQuoteSlide: id => request(`/settings/quote-slides/delete/${id}`, { method: 'DELETE' }),
+
+  enquiries: query => request('/enquiries/admin/get-all', { query }),
+  updateEnquiry: (id, body) => request(`/enquiries/update/${id}`, { method: 'PUT', body }),
+  deleteEnquiry: id => request(`/enquiries/delete/${id}`, { method: 'DELETE' }),
+
+  offers: query => request('/offers/admin/get-all', { query }),
+  createOffer: body => request('/offers/add', { method: 'POST', body }),
+  updateOffer: (id, body) => request(`/offers/update/${id}`, { method: 'PUT', body }),
+  deleteOffer: id => request(`/offers/delete/${id}`, { method: 'DELETE' }),
+
   distributors: query => request('/distributors/admin/get-all', { query }),
   createDistributor: form => request('/distributors/add', { method: 'POST', body: form }),
   updateDistributor: (id, form) => request(`/distributors/update/${id}`, { method: 'PUT', body: form }),
