@@ -10,15 +10,17 @@ import { BroadcastDrawer, BroadcastModal, BroadcastTable } from './Broadcasts.js
 import { DistributorModal, DistributorTable } from './Distributors.jsx'
 import { OfferModal, OfferTable } from './Offers.jsx'
 import { EnquiryModal, EnquiryTable } from './Enquiries.jsx'
+import { AdForm, AdTable } from './Ads.jsx'
 import Settings from './Settings.jsx'
 import { ToastStack } from './Toasts.jsx'
 import { useToasts } from './toasts.js'
 import { api, getToken, onUnauthorized, setToken } from './api.js'
 
-const labels = { dashboard: 'Dashboard', products: 'Products', 'product-form': 'Products', categories: 'Categories', broadcasts: 'Broadcasting', offers: 'Bulk purchase', distributors: 'Distributors', enquiries: 'Enquiries', settings: 'Settings' }
-const singular = { products: 'product', categories: 'category', broadcasts: 'broadcast', distributors: 'distributor', offers: 'offer', enquiries: 'enquiry' }
-const listPages = ['products', 'categories', 'broadcasts', 'distributors', 'offers', 'enquiries']
+const labels = { ads: 'Ads', 'ad-form': 'Ads', dashboard: 'Dashboard', products: 'Products', 'product-form': 'Products', categories: 'Categories', broadcasts: 'Broadcasting', offers: 'Bulk purchase', distributors: 'Distributors', enquiries: 'Enquiries', settings: 'Settings' }
+const singular = { ads: 'ad', products: 'product', categories: 'category', broadcasts: 'broadcast', distributors: 'distributor', offers: 'offer', enquiries: 'enquiry' }
+const listPages = ['ads', 'products', 'categories', 'broadcasts', 'distributors', 'offers', 'enquiries']
 const filterOptions = {
+  ads: ['All statuses', 'Active', 'Draft'],
   products: ['All products', 'In stock', 'Out of stock', 'Most buy', 'Hidden from website'],
   categories: ['All statuses', 'Active', 'Draft'],
   broadcasts: ['All broadcasts'],
@@ -33,8 +35,8 @@ const filterQuery = {
   'Flat discount': { discountType: 'FLAT' }, 'Percentage discount': { discountType: 'PERCENTAGE' },
   New: { status: 'NEW' }, Contacted: { status: 'CONTACTED' }, Closed: { status: 'CLOSED' },
 }
-const fetchers = { products: api.products, categories: api.categories, broadcasts: api.broadcasts, distributors: api.distributors, offers: api.offers, enquiries: api.enquiries }
-const PAGE_SIZE = { products: 20, categories: 50, broadcasts: 20, distributors: 20, offers: 20, enquiries: 25 }
+const fetchers = { ads: api.ads, products: api.products, categories: api.categories, broadcasts: api.broadcasts, distributors: api.distributors, offers: api.offers, enquiries: api.enquiries }
+const PAGE_SIZE = { ads: 20, products: 20, categories: 50, broadcasts: 20, distributors: 20, offers: 20, enquiries: 25 }
 
 function readTheme() { try { const saved = localStorage.getItem('samarth-admin-theme'); if (saved === 'light' || saved === 'dark') return saved } catch { /* storage unavailable */ } return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' }
 
@@ -44,6 +46,7 @@ export default function App() {
   const [admin, setAdmin] = useState(() => (getToken() ? undefined : null))
   const [sessionNote, setSessionNote] = useState('')
   const [page, setPage] = useState('dashboard')
+  const [adRecord, setAdRecord] = useState(null)
   const [formProductId, setFormProductId] = useState(null)
   const [expanded, setExpanded] = useState(true)
   const [mobile, setMobile] = useState(false)
@@ -141,7 +144,13 @@ export default function App() {
   const openProductForm = (id = null) => { setFormProductId(id); setPage('product-form'); setMobile(false); window.scrollTo(0, 0) }
   const showCategoryProducts = category => { navigate('products'); setCategoryFilter(category._id) }
   const signOut = () => { setMenuOpen(false); setToken(null); setAdmin(null); setSessionNote('You have signed out.'); setPage('dashboard') }
-  const addNew = () => page === 'offers' ? setOfferModal({ record: null }) : page === 'distributors' ? setDistributorModal({ record: null }) : page === 'broadcasts' ? setBroadcastModal({ record: null }) : page === 'categories' ? setCategoryModal({ record: null }) : openProductForm()
+  const openAdForm = (record = null) => { setAdRecord(record); navigate('ad-form') }
+  const deleteAd = async record => {
+    if (!window.confirm(`Delete ad "${record.title}"? Its image will be removed too.`)) return
+    try { await api.deleteAd(record._id); toast('Ad deleted.'); refresh() }
+    catch (err) { toast(err.message, 'error') }
+  }
+  const addNew = () => page === 'ads' ? openAdForm() : page === 'offers' ? setOfferModal({ record: null }) : page === 'distributors' ? setDistributorModal({ record: null }) : page === 'broadcasts' ? setBroadcastModal({ record: null }) : page === 'categories' ? setCategoryModal({ record: null }) : openProductForm()
   const deleteBroadcast = async broadcast => {
     if (!window.confirm(`Delete the broadcast “${broadcast.title}”? Its image will be removed too.`)) return
     try { await api.deleteBroadcast(broadcast._id); toast(`Broadcast “${broadcast.title}” deleted.`); refresh() }
@@ -193,6 +202,7 @@ export default function App() {
           <button className={page === 'categories' ? 'selected' : ''} onClick={() => navigate('categories')}>Categories<span>{categories.length}</span></button>
         </div>}
         <button className={`nav-item ${page === 'broadcasts' ? 'active' : ''}`} onClick={() => navigate('broadcasts')}><Icon name="broadcast" />Broadcasting</button>
+        <button className={`nav-item ${['ads', 'ad-form'].includes(page) ? 'active' : ''}`} onClick={() => navigate('ads')}><Icon name="image" />Ads</button>
         <button className={`nav-item ${page === 'enquiries' ? 'active' : ''}`} onClick={() => navigate('enquiries')}><Icon name="mail" />Enquiries{newEnquiries > 0 && <span className="nav-count">{newEnquiries}</span>}</button>
         <button className={`nav-item ${page === 'distributors' ? 'active' : ''}`} onClick={() => navigate('distributors')}><Icon name="distributors" />Distributors</button>
         <button className={`nav-item ${page === 'offers' ? 'active' : ''}`} onClick={() => navigate('offers')}><Icon name="boxes" />Bulk purchase</button>
@@ -220,7 +230,7 @@ export default function App() {
         </div></div>
       </header>
       <main>
-        {page !== 'product-form' && <div className="page-heading">
+        {!['product-form', 'ad-form'].includes(page) && <div className="page-heading">
           <div>
             <div className="eyebrow">{page === 'dashboard' ? new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Samarth Enterprises / Admin'}</div>
             <h1>{labels[page]}</h1>
@@ -228,6 +238,7 @@ export default function App() {
               dashboard: 'Redirects to nohar.in, enquiries and your catalogue at a glance.',
               products: 'Search the catalogue by product name or description.',
               categories: 'Group your products into categories. Every product belongs to one category.',
+              ads: 'Video ads and images for the Wellness Solutions section. Only active ads appear on the website.',
               broadcasts: 'Announcements with an image, a message and an optional link. Newest first.',
               settings: 'Your business profile, social media links and the quote slider shown on the website and app.',
               enquiries: 'Messages sent through the Contact us form on the website. Mark them contacted or closed as you follow up.',
@@ -242,7 +253,7 @@ export default function App() {
           </div>
         </div>}
 
-        {page === 'product-form' ? <ProductForm key={formProductId || 'new'} productId={formProductId} categories={categories} onCreateCategory={createCategoryInline}
+        {page === 'ad-form' ? <AdForm key={adRecord?._id || 'new-ad'} record={adRecord} onCancel={() => navigate('ads')} onSaved={() => { toast('Ad saved.'); navigate('ads'); refresh() }} /> : page === 'product-form' ? <ProductForm key={formProductId || 'new'} productId={formProductId} categories={categories} onCreateCategory={createCategoryInline}
           onSaved={(product, isNew) => { toast(isNew ? `“${product.name}” added to your catalogue.` : `“${product.name}” updated.`); navigate('products'); refresh() }}
           onDeleted={product => { toast(`“${product.name}” deleted.`); navigate('products'); refresh() }}
           onCancel={() => navigate('products')} />
@@ -255,7 +266,7 @@ export default function App() {
 
           : <section className="panel management">
             <div className="toolbar">
-              <label className="search-box"><Icon name="search" size={18} /><input aria-label={`Search ${page}`} placeholder={{ products: 'Search by name or description…', categories: 'Search categories…', broadcasts: 'Search by title or description…', distributors: 'Search by company, contact, mobile, city or pincode…', offers: 'Search by title, code or description…', enquiries: 'Search by name, mobile, email or message…' }[page]} value={searchInput} onChange={event => setSearchInput(event.target.value)} /></label>
+              <label className="search-box"><Icon name="search" size={18} /><input aria-label={`Search ${page}`} placeholder={{ ads: 'Search ads by title...', products: 'Search by name or description…', categories: 'Search categories…', broadcasts: 'Search by title or description…', distributors: 'Search by company, contact, mobile, city or pincode…', offers: 'Search by title, code or description…', enquiries: 'Search by name, mobile, email or message…' }[page]} value={searchInput} onChange={event => setSearchInput(event.target.value)} /></label>
               {page === 'products' && <select aria-label="Filter by category" value={categoryFilter} onChange={event => { setCategoryFilter(event.target.value); setPageNumber(1) }}>
                 <option value="">All categories</option>
                 {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
@@ -265,6 +276,7 @@ export default function App() {
             {list.error && list.key === listKey ? <ErrorState message={list.error} onRetry={refresh} inline />
               : listLoading && !list.items.length ? <div className="page-state"><span className="spinner" />Loading {page}…</div>
               : <div className={listLoading ? 'is-refreshing' : ''}>
+                {page === 'ads' && list.items.length > 0 && <AdTable items={list.items} onEdit={openAdForm} onDelete={deleteAd} />}
                 {page === 'products' && list.items.length > 0 && <ProductTable items={list.items} onEdit={item => openProductForm(item._id)} />}
                 {page === 'categories' && list.items.length > 0 && <CategoryGrid items={list.items} onEdit={record => setCategoryModal({ record })} onShowProducts={showCategoryProducts} />}
                 {page === 'enquiries' && list.items.length > 0 && <EnquiryTable items={list.items} onOpen={record => setEnquiryModal({ record })} />}

@@ -46,6 +46,10 @@ async function request(path, { method = 'GET', body, query, auth = true } = {}) 
 }
 
 export const api = {
+  ads: query => request('/ads/admin/get-all', { query }),
+  createAd: form => request('/ads/add', { method: 'POST', body: form }),
+  updateAd: (id, form) => request('/ads/update/' + id, { method: 'PUT', body: form }),
+  deleteAd: id => request('/ads/delete/' + id, { method: 'DELETE' }),
   login: (email, password) => request('/admin/login', { method: 'POST', body: { email, password }, auth: false }),
   me: () => request('/admin/me'),
 
